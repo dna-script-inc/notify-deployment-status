@@ -20,6 +20,15 @@ runs:
     - uses: actions/setup-python@v4
       with:
         python-version: '3.10' 
-    - shell: bash
-      run:
-        python notify-deployment-status.py
+    - shell: python
+      env:
+        WEBHOOK_URL: ${{ inputs.webhook-url }}
+      run: |
+        import requests
+        import json
+        import os
+        from datetime import datetime
+        webhook_url = os.getenv('WEBHOOK_URL')
+        print(webhook_url)
+        message = '{"type":"message","attachments":[{"contentType":"application/vnd.microsoft.card.adaptive","content":{"type":"AdaptiveCard","msteams":{"width":"Full","entities":[$mention]},"body":[{"type":"Container","items":[{"type":"TextBlock","text":"$title","weight":"bolder","size":"medium"},{"type":"ColumnSet","columns":[{"type":"Column","width":"auto","items":[{"type":"Image","url":"$image","size":"Small","style":"Person"}]},{"type":"Column","width":"stretch","items":[{"type":"TextBlock","text":"Via Github Action","weight":"Bolder","wrap":true},{"type":"TextBlock","spacing":"None","text":"$date","isSubtle":true,"wrap":true}]}]}]},{"type":"Container","items":[{"type":"TextBlock","text":"$description","wrap":true},{"type":"FactSet","facts":[{"title":"Sha:","value":"$sha"},{"title":"Actor:","value":"$actor"}]}]}],"actions":[{"type":"Action.OpenUrl","title":"View Workflow Run","url":"$url"}]}}]}'
+        print(message)

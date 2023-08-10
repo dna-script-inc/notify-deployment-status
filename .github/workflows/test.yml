@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github
+      - uses: dna-script-inc/notify-deployment-status@master
         with:
           webhook-url: demo
 

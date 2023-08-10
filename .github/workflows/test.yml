@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./
+      - uses: ./.github
         with:
           webhook-url: demo
 

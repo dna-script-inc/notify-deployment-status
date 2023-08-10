@@ -1,0 +1,22 @@
+name: "Notify the deployment status to MS teams"
+description: "Send the deployment status to MS teams"
+inputs:
+  webhook-url:
+    required: true
+  sha:
+    required: true
+  status:
+    required: true
+  github-run-url:
+    required: true
+  actor:
+    required: true
+  service-name
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10' 
+    

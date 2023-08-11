@@ -25,9 +25,6 @@ runs:
       with:
         python-version: '3.10'
     
-    # - shell: bash
-    #   run: pip3 install requests
-    
     - shell: python
       env:
         WEBHOOK_URL: ${{ inputs.webhook-url }}
@@ -85,4 +82,10 @@ runs:
         message = message.replace("$url", github_run_url)
         message = message.replace("$sha", sha)
         message = message.replace("$actor", actor)
-        print(message)
+        
+        data = message.encode()
+        req = request.Request(webhook_url, method="POST")
+        req.add_header('Content-Type', 'application/json')
+        r = request.urlopen(req, data=data)
+        content = r.read()
+        print(content)

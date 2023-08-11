@@ -8,5 +8,12 @@ jobs:
     steps:
       - uses: dna-script-inc/notify-deployment-status@master
         with:
-          webhook-url: demo
+          webhook-url: ${{ secrets.MS_TEAMS_WH_CONSOLE_DEPLOYMENT_STATUS }}
+          service-name: redbox
+          status: failure
+          sha: ${{ github.sha }}
+          actor: ${{ github.actor }}
+          github-run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          env-name: QA
+          mention-list: my.tra.nguyen-ext@dnascript.co,truong.external@dnascript.co
 

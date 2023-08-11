@@ -13,7 +13,11 @@ inputs:
     required: true
   service-name:
     required: true
-
+  env-name:
+    required: true
+  mention-list:
+    required: true
+    
 runs:
   using: "composite"
   steps:
@@ -21,18 +25,64 @@ runs:
       with:
         python-version: '3.10'
     
-    - shell: bash
-      run: pip3 install requests
+    # - shell: bash
+    #   run: pip3 install requests
     
     - shell: python
       env:
         WEBHOOK_URL: ${{ inputs.webhook-url }}
+        SERVICE_NAME: ${{ inputs.service-name }}
+        STATUS: ${{ inputs.status }}
+        MENTION: ${{ inputs.mention-list }}
+        GITHUB_ACTOR: ${{ inputs.actor }}
+        GITHUB_RUN_URL: ${{ inputs.github-run-url }}
+        SHA: ${{ inputs.sha }}
+        ENV_NAME: ${{ inputs.env-name }}
       run: |
-        import requests
+        from urllib import request
         import json
         import os
         from datetime import datetime
-        webhook_url = os.getenv('WEBHOOK_URL')
-        print(webhook_url)
-        message = '{"type":"message","attachments":[{"contentType":"application/vnd.microsoft.card.adaptive","content":{"type":"AdaptiveCard","msteams":{"width":"Full","entities":[$mention]},"body":[{"type":"Container","items":[{"type":"TextBlock","text":"$title","weight":"bolder","size":"medium"},{"type":"ColumnSet","columns":[{"type":"Column","width":"auto","items":[{"type":"Image","url":"$image","size":"Small","style":"Person"}]},{"type":"Column","width":"stretch","items":[{"type":"TextBlock","text":"Via Github Action","weight":"Bolder","wrap":true},{"type":"TextBlock","spacing":"None","text":"$date","isSubtle":true,"wrap":true}]}]}]},{"type":"Container","items":[{"type":"TextBlock","text":"$description","wrap":true},{"type":"FactSet","facts":[{"title":"Sha:","value":"$sha"},{"title":"Actor:","value":"$actor"}]}]}],"actions":[{"type":"Action.OpenUrl","title":"View Workflow Run","url":"$url"}]}}]}'
+        
+        webhook_url = os.getenv("WEBHOOK_URL")
+        service = os.getenv("SERVICE_NAME")
+        status = os.getenv("STATUS")
+        sha = os.getenv("SHA", "")
+        github_run_url = os.getenv("GITHUB_RUN_URL", "")
+        actor = os.getenv("GITHUB_ACTOR", "")
+        mention_list = os.getenv("MENTION", "")
+        env = os.getenv("ENV_NAME", "")
+
+        message = '{"type":"message","attachments":[{"contentType":"application/vnd.microsoft.card.adaptive","content":{"type":"AdaptiveCard","msteams":{"width":"Full","entities":$entities},"body":[{"type":"Container","items":[{"type":"TextBlock","text":"$title","weight":"bolder","size":"medium"},{"type":"ColumnSet","columns":[{"type":"Column","width":"auto","items":[{"type":"Image","url":"$image","size":"Small","style":"Person"}]},{"type":"Column","width":"stretch","items":[{"type":"TextBlock","text":"Via Github Action","weight":"Bolder","wrap":true},{"type":"TextBlock","spacing":"None","text":"$date","isSubtle":true,"wrap":true}]}]}]},{"type":"Container","items":[{"type":"TextBlock","text":"$description","wrap":true},{"type":"FactSet","facts":[{"title":"Sha:","value":"$sha"},{"title":"Actor:","value":"$actor"}]}]}],"actions":[{"type":"Action.OpenUrl","title":"View Workflow Run","url":"$url"}]}}]}'
+        statuses = json.loads('[{"id":"failure","title":"Failed to deploy $service service","image":"https://dnas-public.s3.us-west-1.amazonaws.com/failed.png","description":"The $service service has not been deployed to $env enviroment."},{"id":"success","title":"Succeed to deploy $service service","image":"https://dnas-public.s3.us-west-1.amazonaws.com/passed.png","description":"The $service service has been deployed to $env enviroment successfully."}]'.replace('$service', service).replace('$env', env))
+        unknown_status = json.loads('{"id":"unknown","title":"Deploy $service service with unknown status","image":"https://dnas-public.s3.us-west-1.amazonaws.com/warning.png","description":"The $service service has not been deployed to $env enviroment."}'.replace('$service', service).replace('$env', env))
+
+        entities = []
+        mention_message = ""
+        if mention_list:
+          mention_message = " Please take a look into it"
+          for i in mention_list.split(','):
+              at = "<at>%s</at>" % i
+              mention_message = mention_message + " " + at
+              entities.append({"type": "mention", "text": at,
+                              "mentioned": {"id": i, "name": i}})
+
+
+
+        st = next(filter(lambda d: d["id"] == status, statuses), unknown_status)
+        if st["id"] == 'success':
+          entities = []
+          mention_message = ""
+        
+
+        message = message.replace('$entities', json.dumps(entities))
+        message = message.replace("$title", st["title"])
+        message = message.replace("$image", st["image"])
+        message = message.replace(
+            "$date", datetime.utcnow().strftime("%d-%b-%Y %H:%M:%S UTC"))
+        message = message.replace(
+            "$description", st["description"] + mention_message)
+        message = message.replace("$url", github_run_url)
+        message = message.replace("$sha", sha)
+        message = message.replace("$actor", actor)
         print(message)
